@@ -1,0 +1,11 @@
+import 'core-js'
+import React from 'react'
+
+import './design-library'
+import './icons'
+// import './sync'
+// import './backup'
+import './tagsCurrent'
+import './tagsRefactored'
+import './popup-components'
+import './other'

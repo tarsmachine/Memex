@@ -15,7 +15,7 @@
     font-size: 0.75rem;
     line-height: 1.4;
     width: 300px;
-    border-radius: 3px;
+    border-radius: 5px;
 }
 
 .tooltipContentDate {
@@ -72,8 +72,9 @@
     } */
 
     &.tooltipBubble {
-        right: 30px;
-        top: -3px;
+        right: 23px;
+        top: -20px;
+        overflow: visible;
     }
 }
 
@@ -99,7 +100,7 @@
 }
 
 .inPageTooltip {
-    right: 220px;
+    right: 100px;
     top: -24px;
     z-index: 1;
 }

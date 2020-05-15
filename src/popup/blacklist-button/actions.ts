@@ -7,7 +7,6 @@ import * as selectors from './selectors'
 import * as popup from '../selectors'
 import { EVENT_NAMES } from '../../analytics/internal/constants'
 import { handleDBQuotaErrors } from 'src/util/error-handler'
-import { NotificationInterface } from 'src/util/notification-types'
 import { notifications } from 'src/util/remote-functions-background'
 
 function deriveDomain(url: string) {
@@ -47,8 +46,10 @@ export const addURLToBlacklist: (
     const state = getState()
 
     analytics.trackEvent({
-        category: 'Popup',
-        action: isDomainChoice ? 'Blacklist domain' : 'Blacklist site',
+        category: 'Blacklist',
+        action: isDomainChoice
+            ? 'createDomainEntryViaPopup'
+            : 'createSiteEntryViaPopup',
     })
 
     processEventRPC({
@@ -74,8 +75,8 @@ export const deleteBlacklistData: () => Thunk = () => async (
     const state = getState()
 
     analytics.trackEvent({
-        category: 'Popup',
-        action: 'Delete blacklisted pages',
+        category: 'Pages',
+        action: 'deleteViaSiteBlacklist',
     })
 
     const url = popup.url(state)
@@ -92,7 +93,7 @@ export const deleteBlacklistData: () => Thunk = () => async (
     } catch (err) {
         handleDBQuotaErrors(
             error =>
-                notifications.createNotification({
+                notifications.create({
                     requireInteraction: false,
                     title: 'Memex error: deleting page',
                     message: error.message,

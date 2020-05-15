@@ -1,10 +1,14 @@
 import ImportContainer from './imports'
 import SettingsContainer from './containers/settings'
-import BackupSettingsContainer from './backup'
+import BackupSettingsContainer from '../backup-restore/ui/backup-pane'
 import Privacy from './privacy'
 import Statistics from './statistics'
 import Settings from './settings'
 import Overview from '../overview'
+import UserScreen from '../authentication/components/UserScreen'
+import { FeaturesOptInScreen } from '../feature-opt-in/ui/components/FeaturesOptInScreen'
+import React from 'react'
+import SyncDevicesPaneContainer from '../sync/components/device-list/SyncDevicesPane'
 
 export default [
     {
@@ -14,7 +18,7 @@ export default [
         hideFromSidebar: true,
     },
     {
-        name: 'Go back to Search',
+        name: 'Search Dashboard',
         pathname: '/overview',
         component: Overview,
         icon: 'search',
@@ -23,7 +27,7 @@ export default [
     {
         name: 'Settings',
         pathname: '/settings',
-        component: Settings, 
+        component: Settings,
         icon: 'settings',
     },
     {
@@ -37,6 +41,12 @@ export default [
         pathname: '/backup',
         component: BackupSettingsContainer,
         icon: 'backup',
+    },
+    {
+        name: 'Sync',
+        pathname: '/sync',
+        component: SyncDevicesPaneContainer,
+        icon: 'sync',
     },
     {
         name: 'Blocklist',
@@ -64,8 +74,32 @@ export default [
     },
     {
         name: 'Tutorial',
-        pathname: 'https://www.notion.so/worldbrain/Tutorials-fa44dcbf41654ceb910c5952b6097f8d',
+        pathname:
+            'https://www.notion.so/worldbrain/Tutorials-fa44dcbf41654ceb910c5952b6097f8d',
         isExternal: true,
         icon: 'info',
+    },
+    {
+        name: 'User Account',
+        pathname: '/account',
+        icon: 'settings',
+        component: UserScreen,
+        hideFromSidebar: true,
+    },
+    {
+        name: 'User Account',
+        pathname: '/account-subscriptions',
+        icon: 'settings',
+        component: (props) => (
+            <UserScreen {...props} initiallyShowSubscriptionModal refreshUser />
+        ),
+        hideFromSidebar: true,
+    },
+    {
+        name: 'Opt In Features',
+        pathname: '/features',
+        icon: 'settings',
+        component: FeaturesOptInScreen,
+        hideFromSidebar: true,
     },
 ]

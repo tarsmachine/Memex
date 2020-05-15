@@ -114,6 +114,7 @@ class ListContainer extends Component {
                 <ListItem
                     key={i}
                     listName={list.name}
+                    isMobileList={list.isMobileList}
                     isFiltered={list.isFilterIndex}
                     onEditButtonClick={this.props.handleEditBtnClick(i)}
                     onListItemClick={this.props.handleListItemClick(list, i)}
@@ -141,6 +142,7 @@ class ListContainer extends Component {
         return (
             <React.Fragment>
                 <MyCollection
+                    isSidebarLocked={this.props.isSidebarLocked}
                     handleRenderCreateList={this.props.toggleCreateListForm}
                 />
 
@@ -159,7 +161,21 @@ class ListContainer extends Component {
                                 .isSidebarLocked,
                         })}
                     >
-                        {this.renderAllLists()}
+                        {this.props.lists.length === 1 ? (
+                            <div>
+                                {this.renderAllLists()}
+                                <div className={extStyles.noLists}>
+                                    <strong>
+                                        You don't have any collections{' '}
+                                    </strong>
+                                    <br />
+                                    Create one with the + icon and drag and drop
+                                    items into it.
+                                </div>
+                            </div>
+                        ) : (
+                            <div>{this.renderAllLists()}</div>
+                        )}
                     </div>
                 </div>
                 <DeleteConfirmModal
@@ -203,12 +219,19 @@ const mapDispatchToProps = (dispatch, getState) => ({
         event.preventDefault()
         dispatch(actions.showListDeleteModal(id, index))
     },
-    handleListItemClick: ({ id }, index) => () => {
+    handleListItemClick: ({ id, isMobileList }, index) => () => {
         dispatch(actions.toggleListFilterIndex(index))
-        dispatch(filterActs.toggleListFilter(id))
+        dispatch(
+            filterActs.toggleListFilter({
+                id,
+                isMobileListFiltered: isMobileList,
+            }),
+        )
     },
-    handleAddPageList: ({ id }, index) => (url, isSocialPost) => {
-        dispatch(actions.addUrltoList(url, isSocialPost, index, id))
+    handleAddPageList: ({ id, isMobileList }, index) => (url, isSocialPost) => {
+        if (!isMobileList) {
+            dispatch(actions.addUrltoList(url, isSocialPost, index, id))
+        }
     },
     handleDeleteList: e => {
         e.preventDefault()
@@ -217,7 +240,4 @@ const mapDispatchToProps = (dispatch, getState) => ({
     },
 })
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps,
-)(ListContainer)
+export default connect(mapStateToProps, mapDispatchToProps)(ListContainer)

@@ -83,6 +83,7 @@ class ListContainer extends Component {
 
     handleCreateListSubmit = event => {
         event.preventDefault()
+        event.stopPropagation()
         const { value } = event.target.elements['listName']
         // value = list name
         this.props.createPageList(
@@ -133,6 +134,7 @@ class ListContainer extends Component {
                     />
                 )
             }
+
             return (
                 <ListItem
                     key={i}
@@ -143,6 +145,7 @@ class ListContainer extends Component {
                     onAddPageToList={this.props.handleAddPageList(list, i)}
                     onCrossButtonClick={this.props.handleCrossBtnClick(list, i)}
                     resetUrlDragged={this.props.resetUrlDragged}
+                    isMobileList={list.isMobileList}
                 />
             )
         })
@@ -246,7 +249,4 @@ const mapDispatchToProps = (dispatch, getState) => ({
     },
 })
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps,
-)(ListContainer)
+export default connect(mapStateToProps, mapDispatchToProps)(ListContainer)

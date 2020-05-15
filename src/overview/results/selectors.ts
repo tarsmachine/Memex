@@ -9,6 +9,7 @@ import * as sidebarLeft from '../sidebar-left/selectors'
 import { query } from '../search-bar/selectors'
 import * as constants from './constants'
 import { ResultsByUrl } from '../types'
+import { defaultState } from './reducer'
 
 /**
  * Either set display title to be the top-level title field, else look in content. Fallback is the URL.
@@ -28,7 +29,7 @@ function decideTitle(pageDoc) {
 /**
  * Returns page doc with modified title, isDeleting and tagPills data.
  */
-const editPageResults = ({ modalShown, deleting, tagIndex }) => (
+const editPageResults = ({ modalShown, deleting, tagIndex, listIndex }) => (
     pageDoc,
     i,
 ) => ({
@@ -37,56 +38,69 @@ const editPageResults = ({ modalShown, deleting, tagIndex }) => (
     isDeleting: !modalShown && i === deleting,
     tagPillsData: pageDoc.tags.slice(0, constants.SHOWN_TAGS_LIMIT),
     shouldDisplayTagPopup: i === tagIndex,
+    shouldDisplayListPopup: i === listIndex,
 })
 
 const resultsState = (state: RootState) => state.results
 
-export const isLoading = createSelector(resultsState, state => state.isLoading)
-export const resultDocs = createSelector(resultsState, state => state.results)
+export const showOnboardingMessage = createSelector(
+    resultsState,
+    (state) => state.showOnboardingMessage,
+)
+export const isLoading = createSelector(
+    resultsState,
+    (state) => state.isLoading,
+)
+export const resultDocs = createSelector(resultsState, (state) => state.results)
+export const activeListIndex = createSelector(
+    resultsState,
+    (state) => state.activeListIndex,
+)
 export const activeTagIndex = createSelector(
     resultsState,
-    state => state.activeTagIndex,
+    (state) => state.activeTagIndex,
 )
 export const activeSidebarIndex = createSelector(
     resultsState,
-    state => state.activeSidebarIndex,
+    (state) => state.activeSidebarIndex,
 )
+
 export const currentPage = createSelector(
     resultsState,
-    state => state.currentPage,
+    (state) => state.currentPage,
 )
 const resultsExhausted = createSelector(
     resultsState,
-    results => results.resultsExhausted,
+    (results) => results.resultsExhausted,
 )
 
 export const isBadTerm = createSelector(
     resultsState,
-    results => !!results.isBadTerm,
+    (results) => !!results.isBadTerm,
 )
 
 export const areAnnotationsExpanded = createSelector(
     resultsState,
-    results => results.areAnnotationsExpanded,
+    (results) => results.areAnnotationsExpanded,
 )
 
 export const isInvalidSearch = createSelector(
     resultsState,
-    results => !!results.isInvalidSearch,
+    (results) => !!results.isInvalidSearch,
 )
 
 export const totalResultCount = createSelector(
     resultsState,
-    state => state.totalCount,
+    (state) => state.totalCount,
 )
 export const searchCount = createSelector(
     resultsState,
-    state => state.searchCount,
+    (state) => state.searchCount,
 )
 
 export const currentPageDisplay = createSelector(
     currentPage,
-    page => `Page: ${page}`,
+    (page) => `Page: ${page}`,
 )
 
 export const isNewSearchLoading = createSelector(
@@ -95,7 +109,10 @@ export const isNewSearchLoading = createSelector(
     (isLoading, currentPage) => isLoading && currentPage === 0,
 )
 
-export const resultsSkip = createSelector(currentPage, page => page * PAGE_SIZE)
+export const resultsSkip = createSelector(
+    currentPage,
+    (page) => page * PAGE_SIZE,
+)
 
 export const noResults = createSelector(
     resultDocs,
@@ -117,7 +134,7 @@ export const shouldShowCount = createSelector(
 
 export const annotsByDay = createSelector(
     resultsState,
-    state => state.annotsByDay,
+    (state) => state.annotsByDay,
 )
 
 export const results = createSelector(
@@ -125,8 +142,14 @@ export const results = createSelector(
     deleteConfSelectors.isShown,
     deleteConfSelectors.indexToDelete,
     activeTagIndex,
-    (docs, modalShown, deleting, tagIndex) => {
-        const docsMapFn = editPageResults({ modalShown, deleting, tagIndex })
+    activeListIndex,
+    (docs, modalShown, deleting, tagIndex, listIndex) => {
+        const docsMapFn = editPageResults({
+            modalShown,
+            deleting,
+            tagIndex,
+            listIndex,
+        })
         return docs.map(docsMapFn)
     },
 )
@@ -141,22 +164,22 @@ export const showInitSearchMsg = createSelector(
 
 export const isScrollDisabled = createSelector(
     sidebarLeft.mouseOverSidebar,
-    mouseOverSidebar => mouseOverSidebar,
+    (mouseOverSidebar) => mouseOverSidebar,
 )
 
 export const searchType = createSelector(
     resultsState,
-    state => state.searchType,
+    (state) => state.searchType,
 )
 
 export const isAnnotsSearch = createSelector(
     searchType,
-    state => state === 'notes',
+    (state) => state === 'notes',
 )
 
 export const isSocialPost = createSelector(
     searchType,
-    state => state === 'social',
+    (state) => state === 'social',
 )
 
 export const resultsClusteredByDay = createSelector(

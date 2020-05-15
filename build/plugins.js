@@ -11,36 +11,37 @@ import CssExtractPlugin from 'mini-css-extract-plugin'
 import SentryPlugin from '@sentry/webpack-plugin'
 import ZipPlugin from 'zip-webpack-plugin'
 import PostCompilePlugin from 'post-compile-webpack-plugin'
-// Disabling this for now as it adds 2-4 seconds to inc. build time - look into finding out why
-// import WebExtReloadPlugin from 'webpack-chrome-extension-reloader'
-
 import initEnv from './env'
 import * as staticFiles from './static-files'
 import { output } from './config'
+const Dotenv = require('dotenv-webpack')
 
 /**
  * @param {boolean} tslint Denotes whether or not to enable linting on this thread as well as type checking.
  */
-const initTsPlugin = tslint =>
+const initTsPlugin = (tslint) =>
     new ForkTsPlugin({
         checkSyntacticErrors: true,
         async: false,
         tslint,
     })
 
-export default function({
+export default function ({
     webExtReloadPort = 9090,
     mode = 'development',
     template,
-    notifsEnabled = false,
     isCI = false,
+    runSentry = false,
+    notifsEnabled = false,
     shouldPackage = false,
     packagePath = '../dist',
     extPackageName = 'extension.zip',
     sourcePackageName = 'source-code.zip',
 }) {
+    const envs = initEnv({ mode })
     const plugins = [
-        new EnvironmentPlugin(initEnv({ mode })),
+        new EnvironmentPlugin(envs),
+        new Dotenv(),
         new CopyPlugin(staticFiles.copyPatterns),
         new HtmlPlugin({
             title: 'Popup',
@@ -65,18 +66,39 @@ export default function({
 
     if (mode === 'development') {
         plugins.push(
-            new HardSourcePlugin(),
-            // new WebExtReloadPlugin({
-            //     port: webExtReloadPort,
-            // }),
+            new HardSourcePlugin({
+                environmentHash: {
+                    root: process.cwd(),
+                    directories: [],
+                    files: ['package-lock.json', 'yarn.lock', '.env'],
+                },
+            }),
         )
     } else if (mode === 'production') {
         plugins.push(
             new SentryPlugin({
                 release: process.env.npm_package_version,
                 include: output.path,
-                dryRun: !shouldPackage,
+                dryRun: !runSentry,
             }),
+        )
+    }
+
+    if (shouldPackage || isCI) {
+        plugins.push(
+            new ZipPlugin({
+                path: packagePath,
+                filename: extPackageName,
+                exclude: [/\.map/],
+            }),
+        )
+    }
+
+    if (shouldPackage) {
+        plugins.push(
+            new PostCompilePlugin(() =>
+                exec('git-archive-all dist/source-code.zip'),
+            ),
         )
     }
 
@@ -90,19 +112,6 @@ export default function({
             new BuildNotifPlugin({
                 title: 'Memex Build',
             }),
-        )
-    }
-
-    if (shouldPackage) {
-        plugins.push(
-            new ZipPlugin({
-                path: packagePath,
-                filename: extPackageName,
-                exclude: [/\.map/],
-            }),
-            new PostCompilePlugin(() =>
-                exec('git archive -o dist/source-code.zip master'),
-            ),
         )
     }
 

@@ -1,20 +1,18 @@
 import { browser } from 'webextension-polyfill-ts'
 
+import analytics from 'src/analytics'
 import { delayed, getPositionState, getTooltipState } from './utils'
-import {
-    createAndCopyDirectLink,
-    createAnnotation,
-    createHighlight,
-} from '../direct-linking/content_script/interactions'
+import { createAndCopyDirectLink } from '../direct-linking/content_script/interactions'
 import { setupUIContainer, destroyUIContainer } from './components'
 import {
     remoteFunction,
-    makeRemotelyCallable,
     makeRemotelyCallableType,
 } from '../util/webextensionRPC'
 import { injectCSS } from '../search-injection/dom'
 import { conditionallyShowHighlightNotification } from './onboarding-interactions'
 import { TooltipInteractionInterface } from 'src/content-tooltip/types'
+import { createAnnotationDraftInSidebar } from 'src/annotations'
+import { createAnnotation as createAnnotationAction } from 'src/annotations/actions'
 
 const openOptionsRPC = remoteFunction('openOptionsTab')
 let mouseupListener = null
@@ -61,7 +59,7 @@ let manualOverride = false
  * Mounts Tooltip React component.
  * Sets up Container <---> webpage Remote functions.
  */
-export const insertTooltip = async ({ toolbarNotifications }) => {
+export const insertTooltip = async ({ toolbarNotifications, store }) => {
     // If target is set, Tooltip has already been injected.
     if (target) {
         return
@@ -76,10 +74,26 @@ export const insertTooltip = async ({ toolbarNotifications }) => {
 
     showTooltip = await setupUIContainer(target, {
         createAndCopyDirectLink,
-        createAnnotation,
-        createHighlight,
+        createAnnotation: () => {
+            analytics.trackEvent({
+                category: 'InPageTooltip',
+                action: 'annotateText',
+            })
+            return createAnnotationDraftInSidebar()
+        },
+        createHighlight: () => {
+            analytics.trackEvent({
+                category: 'InPageTooltip',
+                action: 'highlightText',
+            })
+            return store.dispatch(createAnnotationAction())
+        },
         openSettings: () => openOptionsRPC('settings'),
         destroyTooltip: async () => {
+            analytics.trackEvent({
+                category: 'InPageTooltip',
+                action: 'closeTooltip',
+            })
             manualOverride = true
             removeTooltip()
 
@@ -114,7 +128,7 @@ export const removeTooltip = () => {
  * Should either be called through the RPC, or pass the `toolbarNotifications`
  * wrapped in an object.
  */
-const insertOrRemoveTooltip = async ({ toolbarNotifications }) => {
+const insertOrRemoveTooltip = async ({ toolbarNotifications, store }) => {
     if (manualOverride) {
         return
     }
@@ -123,7 +137,7 @@ const insertOrRemoveTooltip = async ({ toolbarNotifications }) => {
     const isTooltipPresent = !!target
 
     if (isTooltipEnabled && !isTooltipPresent) {
-        insertTooltip({ toolbarNotifications })
+        insertTooltip({ toolbarNotifications, store })
     } else if (!isTooltipEnabled && isTooltipPresent) {
         removeTooltip()
     }
@@ -132,27 +146,27 @@ const insertOrRemoveTooltip = async ({ toolbarNotifications }) => {
 /**
  * Sets up RPC functions to insert and remove Tooltip from Popup.
  */
-export const setupRPC = ({ toolbarNotifications }) => {
+export const setupRPC = ({ toolbarNotifications, store }) => {
     makeRemotelyCallableType<TooltipInteractionInterface>({
         showContentTooltip: async () => {
             if (!showTooltip) {
-                await insertTooltip({ toolbarNotifications })
+                await insertTooltip({ toolbarNotifications, store })
             }
             if (userSelectedText()) {
                 const position = calculateTooltipPostion()
                 showTooltip(position)
             }
         },
-        insertTooltip: ({ override }) => {
+        insertTooltip: async ({ override } = {}) => {
             manualOverride = !!override
-            insertTooltip({ toolbarNotifications })
+            await insertTooltip({ toolbarNotifications, store })
         },
-        removeTooltip: ({ override }) => {
+        removeTooltip: async ({ override } = {}) => {
             manualOverride = !!override
-            removeTooltip()
+            await removeTooltip()
         },
         insertOrRemoveTooltip: async () => {
-            await insertOrRemoveTooltip({ toolbarNotifications })
+            await insertOrRemoveTooltip({ toolbarNotifications, store })
         },
     })
 }
@@ -184,6 +198,11 @@ export const conditionallyTriggerTooltip = delayed(
         } else if (positioning === 'mouse' && event) {
             position = { x: event.pageX, y: event.pageY }
         }
+
+        analytics.trackEvent({
+            category: 'InPageTooltip',
+            action: 'showTooltip',
+        })
         callback(position)
 
         conditionallyShowHighlightNotification({

@@ -19,6 +19,7 @@ import StatusReport from './components/StatusReport'
 // import ShowDownloadDetails from './components/ShowDownloadDetails'
 import { acts as searchBarActs } from 'src/overview/search-bar'
 import styles from './components/ActionButton.css'
+import { OPTIONS_URL } from 'src/constants'
 
 class ImportContainer extends Component {
     static propTypes = {
@@ -116,7 +117,7 @@ class ImportContainer extends Component {
             isHidden={!this.props.shouldRenderProgress}
             customClass={'cancel'}
         >
-            Cancel
+            {this.state.waitingOnCancelConfirm ? 'Confirm Cancel' : 'Cancel'}
         </ActionButton>
     )
 
@@ -160,12 +161,22 @@ class ImportContainer extends Component {
 
         if (this.props.isStopped) {
             return (
-                <ActionButton
-                    customClass={'newImport'}
-                    handleClick={this.handleBtnClick(boundActions.finish)}
-                >
-                    Start new import
-                </ActionButton>
+                <div className={styles.finishBntContainer}>
+                    <ActionButton
+                        customClass={'newImport'}
+                        handleClick={this.handleBtnClick(boundActions.finish)}
+                    >
+                        Start new import
+                    </ActionButton>
+                    <ActionButton
+                        customClass={'dashboard'}
+                        handleClick={() =>
+                            window.open(`${OPTIONS_URL}#/overview`)
+                        }
+                    >
+                        Go to dashboard
+                    </ActionButton>
+                </div>
             )
         }
 
@@ -360,7 +371,4 @@ const mapDispatchToProps = dispatch => ({
     search: () => dispatch(searchBarActs.search({ overwrite: true })),
 })
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps,
-)(ImportContainer)
+export default connect(mapStateToProps, mapDispatchToProps)(ImportContainer)

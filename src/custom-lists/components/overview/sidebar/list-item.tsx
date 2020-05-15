@@ -1,10 +1,13 @@
 import React, { Component, DragEventHandler } from 'react'
 import cx from 'classnames'
 
+import analytics from 'src/analytics'
+
 const styles = require('./list-item.css')
 
 export interface Props {
     listName: string
+    isMobileList: boolean
     isFiltered: boolean
     onEditButtonClick: React.MouseEventHandler<HTMLButtonElement>
     onCrossButtonClick: React.MouseEventHandler<HTMLButtonElement>
@@ -17,7 +20,7 @@ interface State {
     isDragInside: boolean
 }
 
-class PageList extends Component<Props, State> {
+class ListItem extends Component<Props, State> {
     private listItemRef: HTMLElement
 
     constructor(props) {
@@ -101,6 +104,12 @@ class PageList extends Component<Props, State> {
         const { url, isSocialPost } = JSON.parse(
             e.dataTransfer.getData('text/plain'),
         )
+
+        analytics.trackEvent({
+            category: 'Collections',
+            action: 'addPageViaDragAndDrop',
+        })
+
         // this.props.resetUrlDragged()
         this.props.onAddPageToList(url, isSocialPost)
     }
@@ -133,11 +142,12 @@ class PageList extends Component<Props, State> {
             >
                 <div className={styles.listName}>{this.props.listName}</div>
                 <div className={styles.buttonContainer}>
-                    {this.state.isMouseInside && (
+                    {!this.props.isMobileList && this.state.isMouseInside && (
                         <React.Fragment>
                             <button
                                 className={cx(styles.editButton, styles.button)}
                                 onClick={this.handleEditBtnClick}
+                                title={'Edit'}
                             />
                             <button
                                 className={cx(
@@ -145,6 +155,7 @@ class PageList extends Component<Props, State> {
                                     styles.button,
                                 )}
                                 onClick={this.handleCrossBtnClick}
+                                title={'Delete'}
                             />
                         </React.Fragment>
                     )}
@@ -154,4 +165,4 @@ class PageList extends Component<Props, State> {
     }
 }
 
-export default PageList
+export default ListItem

@@ -6,21 +6,18 @@ import {
     Commands,
     Storage,
 } from 'webextension-polyfill-ts'
+import { URLNormalizer, normalizeUrl } from '@worldbrain/memex-url-utils'
 
 import * as utils from './utils'
-import { UNINSTALL_URL } from './constants'
 import ActivityLoggerBackground from 'src/activity-logger/background'
 import NotifsBackground from '../notifications/background'
 import { onInstall, onUpdate } from './on-install-hooks'
 import { makeRemotelyCallable } from '../util/webextensionRPC'
-import { USER_ID } from '../util/generate-token'
-import {
-    storageChangesManager,
-    StorageChangesManager,
-} from '../util/storage-changes'
+import { StorageChangesManager } from '../util/storage-changes'
 import { migrations } from './quick-and-dirty-migrations'
 import { AlarmsConfig } from './alarms'
-import { fetchUserId } from 'src/analytics/utils'
+import { generateUserId } from 'src/analytics/utils'
+import { STORAGE_KEYS } from 'src/analytics/constants'
 
 class BackgroundScript {
     private utils: typeof utils
@@ -28,6 +25,7 @@ class BackgroundScript {
     private activityLoggerBackground: ActivityLoggerBackground
     private storageChangesMan: StorageChangesManager
     private storageManager: Storex
+    private urlNormalizer: URLNormalizer
     private storageAPI: Storage.Static
     private runtimeAPI: Runtime.Static
     private commandsAPI: Commands.Static
@@ -39,7 +37,8 @@ class BackgroundScript {
         notifsBackground,
         loggerBackground,
         utilFns = utils,
-        storageChangesMan = storageChangesManager,
+        storageChangesMan,
+        urlNormalizer = normalizeUrl,
         storageAPI = browser.storage,
         runtimeAPI = browser.runtime,
         commandsAPI = browser.commands,
@@ -48,8 +47,9 @@ class BackgroundScript {
         storageManager: Storex
         notifsBackground: NotifsBackground
         loggerBackground: ActivityLoggerBackground
+        urlNormalizer?: URLNormalizer
         utilFns?: typeof utils
-        storageChangesMan?: StorageChangesManager
+        storageChangesMan: StorageChangesManager
         storageAPI?: Storage.Static
         runtimeAPI?: Runtime.Static
         commandsAPI?: Commands.Static
@@ -64,12 +64,13 @@ class BackgroundScript {
         this.runtimeAPI = runtimeAPI
         this.commandsAPI = commandsAPI
         this.alarmsAPI = alarmsAPI
+        this.urlNormalizer = urlNormalizer
     }
 
     get defaultUninstallURL() {
         return process.env.NODE_ENV === 'production'
-            ? 'http://worldbrain.io/uninstall'
-            : 'http://worldbrain.io/uninstall'
+            ? 'https://us-central1-worldbrain-1057.cloudfunctions.net/uninstall'
+            : 'https://us-central1-worldbrain-staging.cloudfunctions.net/uninstall'
     }
 
     /**
@@ -92,18 +93,13 @@ class BackgroundScript {
      */
     private setupInstallHooks() {
         this.runtimeAPI.onInstalled.addListener(details => {
+            this.notifsBackground.deliverStaticNotifications()
+            this.activityLoggerBackground.trackExistingTabs()
+
             switch (details.reason) {
                 case 'install':
-                    this.notifsBackground.deliverStaticNotifications()
-                    this.activityLoggerBackground.trackExistingTabs({
-                        isNewInstall: true,
-                    })
                     return onInstall()
                 case 'update':
-                    this.notifsBackground.deliverStaticNotifications()
-                    this.activityLoggerBackground.trackExistingTabs({
-                        isNewInstall: false,
-                    })
                     this.runQuickAndDirtyMigrations()
                     return onUpdate()
                 default:
@@ -122,7 +118,10 @@ class BackgroundScript {
                 continue
             }
 
-            await migration(this.storageManager.backend['dexieInstance'])
+            await migration({
+                db: this.storageManager.backend['dexieInstance'],
+                normalizeUrl: this.urlNormalizer,
+            })
             await this.storageAPI.local.set({ [storageKey]: true })
         }
     }
@@ -134,16 +133,19 @@ class BackgroundScript {
     private setupUninstallURL() {
         this.runtimeAPI.setUninstallURL(this.defaultUninstallURL)
         setTimeout(async () => {
-            const userId = await fetchUserId()
+            const userId = await generateUserId({})
             this.runtimeAPI.setUninstallURL(
                 `${this.defaultUninstallURL}?user=${userId}`,
             )
         }, 1000)
 
-        this.storageChangesMan.addListener('local', USER_ID, ({ newValue }) =>
-            this.runtimeAPI.setUninstallURL(
-                `${this.defaultUninstallURL}?user=${newValue}`,
-            ),
+        this.storageChangesMan.addListener(
+            'local',
+            STORAGE_KEYS.USER_ID,
+            ({ newValue }) =>
+                this.runtimeAPI.setUninstallURL(
+                    `${this.defaultUninstallURL}?user=${newValue}`,
+                ),
         )
     }
 

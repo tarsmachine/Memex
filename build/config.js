@@ -10,7 +10,7 @@ export const extensions = ['.ts', '.tsx', '.js', '.jsx', '.coffee']
 export const entry = {
     background: './src/background.ts',
     popup: './src/popup/index.tsx',
-    content_script: './src/content_script.js',
+    content_script: './src/content_script.ts',
     options: './src/options/options.jsx',
 }
 
@@ -78,11 +78,6 @@ export default ({ context = __dirname, mode = 'development', ...opts }) => {
         conf.optimization = {
             minimizer: initMinimizers(),
         }
-    }
-
-    // CI doesn't need source-maps
-    if (opts.isCI) {
-        delete conf.devtool
     }
 
     return conf

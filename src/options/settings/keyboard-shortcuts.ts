@@ -8,29 +8,28 @@ export interface ShortcutElData {
 }
 
 export const shortcuts: ShortcutElData[] = [
-    { id: 'link-shortcut', name: 'link', children: 'Create links' },
     {
         id: 'highlight-shortcut',
-        name: 'highlight',
+        name: 'createHighlight',
         children: 'Highlight selected text',
     },
     {
         id: 'show-highlights-shortcut',
         name: 'toggleHighlights',
         children: 'Toggle visibility of highlights (with no text selected)',
-        tooltip: 'Toggle highlights',
+        tooltip: 'Toggle Highlights',
     },
     {
         id: 'sidebar-shortcut',
         name: 'toggleSidebar',
         children: 'Open Sidebar',
-        toggleOn: 'Open Sidebar',
-        toggleOff: 'Close Sidebar',
+        toggleOn: 'Toggle Sidebar',
+        toggleOff: 'Open Sidebar',
     },
     {
         id: 'annotation-shortcut',
         name: 'createAnnotation',
-        children: 'Create annotation',
+        children: 'Create Annotation',
     },
     {
         id: 'add-to-coll-shortcut',
@@ -42,8 +41,8 @@ export const shortcuts: ShortcutElData[] = [
         id: 'create-bm-shortcut',
         name: 'createBookmark',
         children: 'Star current page',
-        toggleOn: 'Star page',
-        toggleOff: 'Unstar page',
+        toggleOn: 'Bookmark page',
+        toggleOff: 'Remove bookmark',
     },
     {
         id: 'add-tag-shortcut',

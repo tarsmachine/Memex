@@ -15,12 +15,16 @@ import { reducer as results } from '../overview/results'
 import { reducer as searchBar } from '../overview/search-bar'
 import { reducer as tooltips } from '../overview/tooltips'
 import { reducer as customLists } from 'src/custom-lists'
+import { reducer as modals } from '../overview/modals/reducer'
 // Search filters in the sidebar
 import { reducer as searchFilters } from 'src/search-filters'
 import { reducer as sidebarLeft } from 'src/overview/sidebar-left'
+
 import * as notifications from '../notifications'
+import { authReducer } from '../authentication/redux'
 
 const rootReducer = combineReducers({
+    auth: authReducer,
     blacklist: blacklist.reducer,
     imports: imports.reducer,
     privacy: privacy.reducer,
@@ -32,6 +36,7 @@ const rootReducer = combineReducers({
     sidebarLeft,
     notifications: notifications.reducer,
     deleteConfModal,
+    modals,
     searchBar,
     tooltips,
     results,
@@ -60,12 +65,11 @@ const stateTransformer = ({ overview, ...state }) => ({
 export default function configureStore({ ReduxDevTools = undefined } = {}) {
     const middlewares = [createEpicMiddleware(rootEpic), thunk]
 
-    initSentry(middlewares, stateTransformer)
+    initSentry({ reduxMiddlewares: middlewares, stateTransformer })
 
     const enhancers = [
         overviewPage.enhancer,
         imports.enhancer,
-        settings.enhancer,
         applyMiddleware(...middlewares),
     ]
 
